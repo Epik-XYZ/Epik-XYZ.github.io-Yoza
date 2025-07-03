@@ -1,1 +1,407 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JSON Chatbot</title>
+    <style>
+        :root {
+            --body-bg: #f4f7f6;
+            --chat-bg: #ffffff;
+            --user-msg-bg: #007bff;
+            --bot-msg-bg: #e9e9eb;
+            --header-bg: #0069d9;
+            --text-light: #ffffff;
+            --text-dark: #333333;
+            --border-color: #e0e0e0;
+            --font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        }
 
+        body {
+            background-color: var(--body-bg);
+            font-family: var(--font-family);
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+
+        #chat-container {
+            width: 90%;
+            max-width: 700px;
+            height: 90vh;
+            max-height: 800px;
+            background-color: var(--chat-bg);
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        #chat-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 20px;
+            background-color: var(--header-bg);
+            color: var(--text-light);
+            font-size: 1.2rem;
+            font-weight: bold;
+        }
+
+        #settings-btn {
+            background: none;
+            border: none;
+            color: var(--text-light);
+            font-size: 1.5rem;
+            cursor: pointer;
+            opacity: 0.8;
+            transition: opacity 0.2s;
+        }
+
+        #settings-btn:hover {
+            opacity: 1;
+        }
+
+        #main-chat-area {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        
+        #chat-box {
+            flex-grow: 1;
+            padding: 20px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .message {
+            padding: 10px 15px;
+            border-radius: 18px;
+            max-width: 75%;
+            line-height: 1.4;
+            word-wrap: break-word;
+        }
+
+        .user-message {
+            background-color: var(--user-msg-bg);
+            color: var(--text-light);
+            align-self: flex-end;
+            border-bottom-right-radius: 4px;
+        }
+
+        .bot-message {
+            background-color: var(--bot-msg-bg);
+            color: var(--text-dark);
+            align-self: flex-start;
+            border-bottom-left-radius: 4px;
+        }
+
+        #input-area {
+            display: flex;
+            padding: 15px;
+            border-top: 1px solid var(--border-color);
+        }
+
+        #user-input {
+            flex-grow: 1;
+            border: 1px solid #ccc;
+            border-radius: 20px;
+            padding: 10px 15px;
+            font-size: 1rem;
+            margin-right: 10px;
+        }
+
+        #user-input:focus {
+            outline: none;
+            border-color: var(--user-msg-bg);
+            box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+        }
+
+        #send-btn {
+            background-color: var(--user-msg-bg);
+            color: var(--text-light);
+            border: none;
+            border-radius: 50%;
+            width: 45px;
+            height: 45px;
+            font-size: 1.5rem;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-shrink: 0;
+        }
+
+        #send-btn:hover { background-color: #0056b3; }
+        #send-btn:disabled { background-color: #999; cursor: not-allowed; }
+
+        /* Settings Panel Styles */
+        #settings-panel {
+            padding: 20px;
+            flex-grow: 1;
+            display: none; /* Hidden by default */
+            flex-direction: column;
+        }
+        #settings-panel h3 { margin-top: 0; }
+        #json-input {
+            flex-grow: 1;
+            font-family: monospace;
+            font-size: 0.9rem;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            resize: none;
+            margin-bottom: 10px;
+        }
+        #update-json-btn {
+            padding: 10px 20px;
+            border: none;
+            background-color: var(--user-msg-bg);
+            color: white;
+            border-radius: 8px;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        #update-json-btn:hover { background-color: #0056b3; }
+        #json-status {
+            margin-top: 10px;
+            font-size: 0.9rem;
+            text-align: center;
+        }
+        .status-success { color: green; }
+        .status-error { color: red; }
+    </style>
+</head>
+<body>
+
+    <div id="chat-container">
+        <div id="chat-header">
+            <span>Chatbot</span>
+            <button id="settings-btn" title="Edit JSON Data">⚙</button>
+        </div>
+
+        <div id="main-chat-area">
+            <div id="chat-box">
+                <div class="message bot-message">Hello! Try asking me a question. You can edit my knowledge by clicking the settings (⚙) icon.</div>
+            </div>
+            <div id="input-area">
+                <input type="text" id="user-input" placeholder="Type your message...">
+                <button id="send-btn" title="Send">
+                    <span>➤</span>
+                </button>
+            </div>
+        </div>
+
+        <div id="settings-panel">
+            <h3>Edit Chatbot JSON Data</h3>
+            <textarea id="json-input"></textarea>
+            <p id="json-status"></p>
+            <button id="update-json-btn">Update & Close</button>
+        </div>
+    </div>
+
+    <script>
+        // Default chatbot data
+        let chatData = {
+            "greetings": [{ "hello ": "how ", "how ": "are ", "are ": "you ", "you ": "doing ", "doing ": "today ", "yo": "what ", "what ": "up ", "did ": "you ", "did you ": "need ", "need ": "help ", "help ": "i ", "i ": "can ", "can ": "assist ", "assist ": "you " }],
+            "farewells": [{ "goodbye ": "see ", "see ": "you ", "you ": ["later ", "again "], "later ": "take ", "take ": "care ", "cya ": "see " }],
+            "questions": [{ "what ": ["is ", "are ", "do ", "did ", "can ", "will ", "should ", "was ", "would "], "who ": ["is ", "are ", "was ", "made ", "invented ", "wrote ", "created ", "will "], "when ": ["is ", "are ", "will ", "did ", "was ", "can ", "do "], "where ": ["is ", "are ", "do ", "can ", "did ", "will ", "should "], "why ": ["is ", "are ", "do ", "did ", "should ", "can't ", "wouldn't "], "how ": ["are ", "is ", "do ", "did ", "can ", "will ", "much ", "many ", "long ", "old "], "which ": ["is ", "are ", "one "], "are ": ["you ", "we ", "they ", "there "], "is ": ["it ", "that ", "there ", "this "], "do ": ["you ", "we ", "they ", "i "], "did ": ["you ", "we ", "they ", "it "], "can ": ["you ", "i ", "we ", "it "], "will ": ["you ", "it ", "we "], "should ": ["i ", "we "], "could ": ["you ", "i ", "we "], "would ": ["you ", "it "], "you ": ["know ", "think ", "like ", "want ", "need ", "have ", "remember ", "see ", "going ", "from ", "doing ", "serious ", "kidding ", "ready ", "sure ", "tell ", "show ", "explain ", "repeat ", "help ", "hear "], "i ": ["ask ", "go ", "get ", "start ", "try ", "say ", "help "], "we ": ["go ", "start ", "do ", "need ", "know ", "get "], "they ": ["know ", "coming ", "here "], "it ": ["work ", "rain ", "matter ", "possible ", "true ", "finished ", "start ", "be "], "there ": ["a ", "any ", "more "], "the ": ["time ", "date ", "weather ", "meaning ", "purpose ", "capital ", "best ", "rules ", "plan ", "problem ", "solution ", "answer ", "difference ", "options "], "a ": ["robot ", "problem ", "solution ", "chance ", "way "], "your ": ["name ", "purpose ", "favorite ", "opinion ", "plan ", "age "], "his ": ["name "], "her ": ["name "], "is ": "it ", "it ": "going ", "know ": ["about ", "the ", "if "], "think ": ["about ", "so "], "like ": ["to ", "that "], "need ": ["to ", "help ", "a "], "want ": ["to ", "a "], "about ": ["it ", "that ", "ai ", "science ", "history ", "art "], "to ": ["go ", "do ", "see ", "know ", "start ", "stop ", "eat "], "much ": ["is ", "does ", "time "], "many ": ["are ", "do ", "people "], "long ": ["is ", "will ", "have "], "old ": ["are ", "is "], "help ": ["me ", "us ", "with "], "tell ": ["me ", "us "], "show ": ["me ", "us "], "me ": ["more ", "a ", "the "], "us ": ["more ", "the "], "more ": ["about ", "information "], "a ": ["story ", "joke ", "fact ", "hint "], "made ": ["you ", "this ", "that "], "invented ": ["the "], "wrote ": ["the "], "created ": ["you ", "this "], "does ": ["it ", "that "], "it ": "cost ", "of ": ["life ", "france "], "in ": ["charge ", "the "], "one ": ["is "], "that ": ["true ", "possible ", "correct ", "what "], "repeat ": ["that "], "ask ": ["a "], "a ": "question ", "for ": ["help ", "a "], "go ": ["now ", "there ", "to "], "do ": ["that ", "this ", "it "], "with ": ["this ", "that "]}]
+        };
+
+        // DOM Elements
+        const chatBox = document.getElementById('chat-box');
+        const userInput = document.getElementById('user-input');
+        const sendBtn = document.getElementById('send-btn');
+        const settingsBtn = document.getElementById('settings-btn');
+        const mainChatArea = document.getElementById('main-chat-area');
+        const settingsPanel = document.getElementById('settings-panel');
+        const jsonInput = document.getElementById('json-input');
+        const updateJsonBtn = document.getElementById('update-json-btn');
+        const jsonStatus = document.getElementById('json-status');
+        
+        let allWords = {};
+        let allKeys = [];
+
+        // --- Core Chatbot Logic ---
+
+        const updateKnowledgeBase = () => {
+            try {
+                // Ensure all categories exist, even if empty, to prevent errors
+                const data = chatData;
+                if (!data.greetings) data.greetings = [{}];
+                if (!data.farewells) data.farewells = [{}];
+                if (!data.questions) data.questions = [{}];
+                
+                allWords = {
+                    ...(data.greetings[0] || {}),
+                    ...(data.farewells[0] || {}),
+                    ...(data.questions[0] || {}),
+                };
+                allKeys = Object.keys(allWords);
+                return true;
+            } catch (error) {
+                console.error("Failed to update knowledge base:", error);
+                return false;
+            }
+        };
+
+        const sendMessage = () => {
+            const userText = userInput.value.trim();
+            if (userText === "" || sendBtn.disabled) return;
+
+            displayMessage(userText, 'user');
+            userInput.value = '';
+            toggleInput(false);
+            
+            setTimeout(() => {
+                const botResponse = generateBotResponse(userText);
+                typeBotResponse(botResponse);
+            }, 1000);
+        };
+        
+        const displayMessage = (text, sender) => {
+            const messageElement = document.createElement('div');
+            messageElement.classList.add('message', `${sender}-message`);
+            messageElement.textContent = text;
+            chatBox.appendChild(messageElement);
+            chatBox.scrollTop = chatBox.scrollHeight;
+            return messageElement;
+        };
+        
+        const generateBotResponse = (userText) => {
+            const userWords = userText.toLowerCase().split(/\s+/);
+            let startWord = '';
+            
+            if (allKeys.length === 0) {
+                return "My knowledge base is empty. Please add some data in the settings.";
+            }
+
+            for (const word of userWords) {
+                const potentialKey = word + ' ';
+                if (allKeys.includes(potentialKey)) {
+                    startWord = potentialKey;
+                    break;
+                }
+            }
+            
+            if (!startWord) {
+                startWord = allKeys[Math.floor(Math.random() * allKeys.length)];
+            }
+            
+            let response = startWord;
+            let currentWord = startWord;
+            const responseLength = 5 + Math.floor(Math.random() * 8);
+
+            for (let i = 0; i < responseLength; i++) {
+                if (!currentWord) break;
+                const nextOptions = allWords[currentWord];
+                if (!nextOptions) break;
+                
+                const nextWord = Array.isArray(nextOptions)
+                    ? nextOptions[Math.floor(Math.random() * nextOptions.length)]
+                    : nextOptions;
+                    
+                response += nextWord;
+                currentWord = nextWord;
+            }
+
+            if (response.length <= startWord.length) {
+                return "I'm not sure how to respond to that. Could you ask in a different way?";
+            }
+            
+            return response.trim();
+        };
+
+        const typeBotResponse = (text) => {
+            const messageElement = displayMessage('', 'bot');
+            let index = 0;
+            const typingSpeed = 100;
+
+            const type = () => {
+                if (index < text.length) {
+                    messageElement.textContent += text.charAt(index);
+                    index++;
+                    chatBox.scrollTop = chatBox.scrollHeight;
+                    setTimeout(type, typingSpeed);
+                } else {
+                    toggleInput(true);
+                }
+            };
+            type();
+        };
+
+        const toggleInput = (enabled) => {
+            userInput.disabled = !enabled;
+            sendBtn.disabled = !enabled;
+            if (enabled) {
+                userInput.focus();
+            }
+        };
+
+        // --- UI and Settings Logic ---
+
+        const toggleSettingsPanel = (show) => {
+            if (show) {
+                mainChatArea.style.display = 'none';
+                settingsPanel.style.display = 'flex';
+                jsonInput.value = JSON.stringify(chatData, null, 2); // Pretty-print JSON
+            } else {
+                mainChatArea.style.display = 'flex';
+                settingsPanel.style.display = 'none';
+            }
+        };
+
+        const handleUpdateJson = () => {
+            try {
+                const newData = JSON.parse(jsonInput.value);
+                chatData = newData; // Update global chatData object
+                if (updateKnowledgeBase()) {
+                    setJsonStatus('JSON updated successfully!', 'success');
+                    setTimeout(() => {
+                        toggleSettingsPanel(false);
+                        setJsonStatus(''); // Clear status after a delay
+                    }, 1000);
+                } else {
+                    setJsonStatus('Failed to build knowledge from JSON.', 'error');
+                }
+            } catch (e) {
+                setJsonStatus(`Error: Invalid JSON format. ${e.message}`, 'error');
+            }
+        };
+
+        const setJsonStatus = (message, type = 'error') => {
+            jsonStatus.textContent = message;
+            jsonStatus.className = type === 'success' ? 'status-success' : 'status-error';
+        };
+
+        // --- Event Listeners ---
+
+        sendBtn.addEventListener('click', sendMessage);
+        userInput.addEventListener('keypress', (event) => {
+            if (event.key === 'Enter') sendMessage();
+        });
+        
+        settingsBtn.addEventListener('click', () => {
+            const isSettingsVisible = settingsPanel.style.display === 'flex';
+            toggleSettingsPanel(!isSettingsVisible);
+        });
+
+        updateJsonBtn.addEventListener('click', handleUpdateJson);
+
+        // --- Initialization ---
+        
+        // Load initial data on page load
+        updateKnowledgeBase(); 
+
+    </script>
+</body>
+</html>
